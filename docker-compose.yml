@@ -1,0 +1,32 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=tguser
+      - POSTGRES_PASSWORD=tgpassword
+      - POSTGRES_DB=tgexporter
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tguser -d tgexporter"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  exporter:
+    image: ghcr.io/trashcluster/tgexporter:main
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./session:/app/session
+      - ./downloads:/app/downloads
+    environment:
+      - API_ID=${API_ID}
+      - API_HASH=${API_HASH}
+      - PHONE=${PHONE}
+      - DATABASE_URL=postgresql://tguser:tgpassword@db:5432/tgexporter
+    stdin_open: true
+    tty: true
